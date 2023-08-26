@@ -8,15 +8,7 @@ use palette::Srgba;
 use roughr::core::{Drawable, OpSet, OpSetType, OpType, Options};
 use roughr::generator::Generator;
 use tiny_skia::{
-    FillRule,
-    LineCap,
-    Paint,
-    Path,
-    PathBuilder,
-    PixmapMut,
-    Stroke,
-    StrokeDash,
-    Transform,
+    FillRule, LineCap, LineJoin, Paint, Path, PathBuilder, PixmapMut, Stroke, StrokeDash, Transform,
 };
 
 #[derive(Default)]
@@ -82,7 +74,10 @@ impl<F: Float + Trig> SkiaDrawable<F> {
                     if self.options.stroke_line_dash.is_some() {
                         let mut stroke = Stroke {
                             width: self.options.stroke_width.unwrap_or(1.0),
-                            line_cap: LineCap::Round,
+                            line_cap: convert_line_cap_from_roughr_to_piet(self.options.line_cap),
+                            line_join: convert_line_join_from_roughr_to_piet(
+                                self.options.line_join,
+                            ),
                             ..Stroke::default()
                         };
                         let stroke_line_dash = self
@@ -185,7 +180,10 @@ impl<F: Float + Trig> SkiaDrawable<F> {
                     if self.options.fill_line_dash.is_some() {
                         let mut stroke = Stroke::default();
                         stroke.width = self.options.fill_weight.unwrap_or(1.0);
-                        stroke.line_cap = LineCap::Round;
+                        stroke.line_cap =
+                            convert_line_cap_from_roughr_to_piet(self.options.line_cap);
+                        stroke.line_join =
+                            convert_line_join_from_roughr_to_piet(self.options.line_join);
                         let fill_line_dash = self
                             .options
                             .fill_line_dash
@@ -219,7 +217,10 @@ impl<F: Float + Trig> SkiaDrawable<F> {
                     } else {
                         let mut stroke = Stroke::default();
                         stroke.width = self.options.fill_weight.unwrap_or(1.0);
-                        stroke.line_cap = LineCap::Round;
+                        stroke.line_cap =
+                            convert_line_cap_from_roughr_to_piet(self.options.line_cap);
+                        stroke.line_join =
+                            convert_line_join_from_roughr_to_piet(self.options.line_join);
 
                         let fill_color = self
                             .options
@@ -383,5 +384,25 @@ impl SkiaGenerator {
     ) -> SkiaDrawable<F> {
         let drawable = self.gen.path(svg_path, &self.options);
         drawable.to_skia_drawable()
+    }
+}
+
+fn convert_line_cap_from_roughr_to_piet(roughr_line_cap: Option<roughr::core::LineCap>) -> LineCap {
+    match roughr_line_cap {
+        Some(roughr::core::LineCap::Butt) => LineCap::Butt,
+        Some(roughr::core::LineCap::Round) => LineCap::Round,
+        Some(roughr::core::LineCap::Square) => LineCap::Square,
+        None => LineCap::Round, // 默认值
+    }
+}
+
+fn convert_line_join_from_roughr_to_piet(
+    roughr_line_join: Option<roughr::core::LineJoin>,
+) -> LineJoin {
+    match roughr_line_join {
+        Some(roughr::core::LineJoin::Miter { limit: _ }) => LineJoin::Miter,
+        Some(roughr::core::LineJoin::Round) => LineJoin::Round,
+        Some(roughr::core::LineJoin::Bevel) => LineJoin::Bevel,
+        None => LineJoin::Miter,
     }
 }
